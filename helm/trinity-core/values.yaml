@@ -1,0 +1,29 @@
+replicaCount: 2
+image:
+  repository: trinity-core
+  tag: "12.2"
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 4000
+resources:
+  requests:
+    memory: 256Mi
+    cpu: 100m
+  limits:
+    memory: 1Gi
+    cpu: "1"
+env:
+  PORT: "4000"
+  NODE_ENV: production
+  XAI_MODEL: grok-4.5
+  IPFS_ENABLED: "false"
+serviceAccount:
+  create: true
+  name: trinity-core
+ingress:
+  enabled: false
+persistence:
+  enabled: true
+  size: 5Gi
+  mountPath: /tmp/trinity-ledger

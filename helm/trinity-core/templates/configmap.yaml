@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trinity-core-config
+data:
+  PORT: {{ .Values.env.PORT | quote }}
+  NODE_ENV: {{ .Values.env.NODE_ENV | quote }}
+  XAI_MODEL: {{ .Values.env.XAI_MODEL | quote }}
+  IPFS_ENABLED: {{ .Values.env.IPFS_ENABLED | quote }}

@@ -1,0 +1,12 @@
+apiVersion: v2
+name: trinity-core
+description: Trinity Core v12 autonomous control plane
+type: application
+version: 12.2.0
+appVersion: "12.2"
+keywords:
+  - trinity
+  - multi-agent
+  - control-plane
+maintainers:
+  - name: trinity-core
