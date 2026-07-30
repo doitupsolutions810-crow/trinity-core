@@ -1,0 +1,21 @@
+{
+  "name": "trinity-core",
+  "version": "12.0.0",
+  "description": "TRINITY CORE v12.0 — autonomous infrastructure with CycleKernel multi-agent loop",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node --watch backend/server.js",
+    "check": "node --check backend/server.js && node --check backend/adapters/inMemoryAdapters.js && node --check backend/layers/omniscience.js && node --check backend/layers/realityForge.js",
+    "prove": "bash deploy/scripts/prove-success.sh",
+    "compose": "docker compose up -d --build",
+    "compose:down": "docker compose down"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "license": "MIT"
+}
