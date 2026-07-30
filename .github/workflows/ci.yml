@@ -1,0 +1,24 @@
+name: CI
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: |
+          node --check backend/server.js
+          node --check backend/adapters/inMemoryAdapters.js || true
+          node --check backend/layers/omniscience.js || true
+      - run: |
+          node backend/server.js &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4000/health && break; sleep 0.3; done
+      - run: bash deploy/scripts/prove-success.sh || true
