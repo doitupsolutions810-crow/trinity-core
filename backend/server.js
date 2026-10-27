@@ -29,11 +29,21 @@ async function readJson(req) {
   for await (const c of req) chunks.push(c);
   return JSON.parse(Buffer.concat(chunks).toString() || "{}");
 }
-async function localLoop(objective) {
-  const events = ROLES.map((role) => ({ role, status: "passed", note: `local ${role}`, at: new Date().toISOString() }));
-  appendEvent("execution.completed", { objective, path: "local" });
-  executions += 1;
-  return { success: true, status: "completed", agents: ROLES, events, path: "local" };
+
+// This is an explicit local simulation, not evidence that the swarm executed.
+async function localLoop(objective, fallbackReason) {
+  const events = ROLES.map((role) => ({ role, status: "simulated", note: `local simulation: ${role}`, at: new Date().toISOString() }));
+  appendEvent("execution.simulated", { objective, path: "simulation", fallbackReason });
+  return {
+    success: false,
+    status: "degraded",
+    executionMode: "simulation",
+    productionEvidence: false,
+    reason: fallbackReason,
+    agents: ROLES,
+    events,
+    path: "simulation",
+  };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -47,7 +57,7 @@ const server = http.createServer(async (req, res) => {
       return res.end("<html><body><h1>TRINITY CORE</h1></body></html>");
     }
     if (req.method === "GET" && url.pathname === "/metrics") {
-      const body = [`trinity_active_agents ${agents.length}`, `trinity_multi_agent_executions ${executions}`, `trinity_grok_enabled ${process.env.XAI_API_KEY ? 1 : 0}`, `trinity_bypass_status 0`].join("\n") + "\n";
+      const body = [`trinity_active_agents ${agents.length}`, `trinity_multi_agent_executions ${executions}`, `trinity_grok_enabled ${process.env.XAI_API_KEY ? 1 : 0}`, "trinity_bypass_status 0"].join("\n") + "\n";
       res.writeHead(200, { "content-type": "text/plain" });
       return res.end(body);
     }
@@ -60,14 +70,18 @@ const server = http.createServer(async (req, res) => {
       try {
         const forwarded = await forwardMultiAgent(objective);
         if (forwarded) {
-          appendEvent(forwarded.success ? "execution.completed" : "execution.failed", { objective, path: "swarm", jobId: forwarded.jobId });
-          executions += 1;
-          return json(res, forwarded.success ? 200 : 202, { ...forwarded, path: "swarm" });
+          const succeeded = forwarded.success === true;
+          appendEvent(succeeded ? "execution.completed" : "execution.failed", {
+            objective, path: "swarm", jobId: forwarded.jobId ?? null,
+          });
+          if (succeeded) executions += 1;
+          return json(res, succeeded ? 200 : 202, { ...forwarded, path: "swarm", executionMode: "swarm" });
         }
+        return json(res, 503, await localLoop(objective, "swarm coordinator not configured"));
       } catch (err) {
         appendEvent("execution.failed", { objective, path: "swarm", error: err.message });
+        return json(res, 503, await localLoop(objective, "swarm coordinator request failed"));
       }
-      return json(res, 200, await localLoop(objective));
     }
     json(res, 404, { error: "not found" });
   } catch {
